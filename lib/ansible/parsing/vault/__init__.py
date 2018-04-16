@@ -78,6 +78,8 @@ from ansible.module_utils.six import PY3, binary_type
 # Note: on py2, this zip is izip not the list based zip() builtin
 from ansible.module_utils.six.moves import zip
 from ansible.module_utils._text import to_bytes, to_text, to_native
+import yaml
+import ansible.parsing.yaml.loader
 
 try:
     from __main__ import display
@@ -921,6 +923,20 @@ class VaultEditor:
         except AnsibleError as e:
             raise AnsibleError("%s for %s" % (to_bytes(e), to_bytes(filename)))
         self.write_data(plaintext, output_file or filename, shred=False)
+
+    def decrypt_file_yaml(self, filename, output_file=None):
+
+        # follow the symlink
+        filename = self._real_path(filename)
+
+        ciphertext = self.read_data(filename)
+
+        try:
+            loader = ansible.parsing.yaml.loader.AnsibleLoader(ciphertext, filename)
+            
+            self.write_data(loader, filename, output_file)
+        except AnsibleError as e:
+            raise AnsibleError("%s for %s" % (to_bytes(e), to_bytes(filename)))
 
     def create_file(self, filename, secret, vault_id=None):
         """ create a new encrypted file """

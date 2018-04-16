@@ -49,7 +49,7 @@ class VaultCLI(CLI):
     The password used with vault currently must be the same for all files you wish to use together at the same time.
     '''
 
-    VALID_ACTIONS = ("create", "decrypt", "edit", "encrypt", "encrypt_string", "rekey", "view")
+    VALID_ACTIONS = ("create", "decrypt", "decrypt_yaml", "edit", "encrypt", "encrypt_string", "rekey", "view")
 
     FROM_STDIN = "stdin"
     FROM_ARGS = "the command line args"
@@ -66,7 +66,7 @@ class VaultCLI(CLI):
         self.new_encrypt_secret = None
         self.new_encrypt_vault_id = None
 
-        self.can_output = ['encrypt', 'decrypt', 'encrypt_string']
+        self.can_output = ['encrypt', 'decrypt', 'decrypt_yaml', 'encrypt_string']
 
         super(VaultCLI, self).__init__(args)
 
@@ -83,7 +83,7 @@ class VaultCLI(CLI):
         # options specific to self.actions
         if self.action == "create":
             self.parser.set_usage("usage: %prog create [options] file_name")
-        elif self.action == "decrypt":
+        elif self.action in ["decrypt", "decrypt_yaml"]:
             self.parser.set_usage("usage: %prog decrypt [options] file_name")
         elif self.action == "edit":
             self.parser.set_usage("usage: %prog edit [options] file_name")
@@ -173,7 +173,7 @@ class VaultCLI(CLI):
 
         # TODO: instead of prompting for these before, we could let VaultEditor
         #       call a callback when it needs it.
-        if self.action in ['decrypt', 'view', 'rekey', 'edit']:
+        if self.action in ['decrypt', 'decrypt_yaml', 'view', 'rekey', 'edit']:
             vault_secrets = self.setup_vault_secrets(loader,
                                                      vault_ids=vault_ids,
                                                      vault_password_files=self.options.vault_password_files,
@@ -427,6 +427,18 @@ class VaultCLI(CLI):
 
         for f in self.args or ['-']:
             self.editor.decrypt_file(f, output_file=self.options.output_file)
+
+        if sys.stdout.isatty():
+            display.display("Decryption successful", stderr=True)
+
+    def execute_decrypt_yaml(self):
+        ''' decrypt the supplied file using the provided vault secret '''
+
+        if len(self.args) == 0 and sys.stdin.isatty():
+            display.display("Reading ciphertext input from stdin", stderr=True)
+
+        for f in self.args or ['-']:
+            self.editor.decrypt_file_yaml(f, output_file=self.options.output_file)
 
         if sys.stdout.isatty():
             display.display("Decryption successful", stderr=True)

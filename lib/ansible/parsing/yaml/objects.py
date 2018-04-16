@@ -20,7 +20,7 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import yaml
-
+from ansible.parsing.vault import is_encrypted
 from ansible.module_utils.six import text_type
 from ansible.module_utils._text import to_bytes, to_text
 
@@ -98,13 +98,14 @@ class AnsibleVaultEncryptedUnicode(yaml.YAMLObject, AnsibleBaseYAMLObject):
         # after construction, calling code has to set the .vault attribute to a vaultlib object
         self.vault = None
         self._ciphertext = to_bytes(ciphertext)
+        self.__ENCRYPTED__ = is_encrypted(self._ciphertext)
 
     @property
     def data(self):
         if not self.vault:
             # FIXME: raise exception?
             return self._ciphertext
-        return self.vault.decrypt(self._ciphertext).decode()
+        return self.vault.decrypt(self._ciphertext).decode() if self.__ENCRYPTED__ else self._ciphertext
 
     @data.setter
     def data(self, value):

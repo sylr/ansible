@@ -105,8 +105,12 @@ class AnsibleConstructor(SafeConstructor):
                                    problem="found !vault but no vault password provided",
                                    problem_mark=node.start_mark,
                                    note=None)
-        ret = AnsibleVaultEncryptedUnicode(b_ciphertext_data)
-        ret.vault = vault
+        try:
+            ret = AnsibleVaultEncryptedUnicode(b_ciphertext_data)
+            ret.vault = vault
+        except AnsibleError:
+             ret = construct_yaml_str(self, node)
+
         return ret
 
     def construct_yaml_seq(self, node):
